@@ -1,3 +1,4 @@
+// Jalankan penggantian total kode pada file app/admin/konfirmasi-iuran/page.tsx Anda:
 'use client';
 import { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
@@ -11,171 +12,110 @@ export default function AdminKonfirmasiIuranPage() {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [filterText, setFilterText] = useState('');
 
-  // 1. Ambil data iuran warga yang berstatus 'Belum Lunas' tapi memiliki catatan tanggal kirim (Menunggu Verifikasi)
-  // Untuk efisiensi kuota data, kita melakukan JOIN relasional ke profil warga
   const fetchPendingIuran = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('iuran')
       .select(`
         id, nama_tagihan, bulan, nominal, tanggal_bayar, status,
         profiles (nama, blok_rumah, no_whatsapp)
       `)
       .eq('status', 'Belum Lunas')
-      .not('tanggal_bayar', 'is', null) // Trik deteksi warga yang sudah upload bukti
+      .not('tanggal_bayar', 'is', null)
       .order('tanggal_bayar', { ascending: true });
 
-    if (!error && data) {
-      setListPending(data);
-    }
+    if (data) setListPending(data);
   };
 
-  useEffect(() => {
-    fetchPendingIuran();
-  }, []);
+  useEffect(() => { fetchPendingIuran(); }, []);
 
-  // 2. Logika Fungsi APPROVE (Setujui Pembayaran)
   const handleApprove = async (idIuran: string) => {
     setLoadingId(idIuran);
     try {
-      const { error } = await supabase
-        .from('iuran')
-        .update({ 
-          status: 'Lunas',
-          tanggal_bayar: new Date().toISOString()
-        })
-        .eq('id', idIuran);
-
-      if (error) throw error;
-      
-      // Refresh data lokal setelah berhasil
+      await supabase.from('iuran').update({ status: 'Lunas', tanggal_bayar: new Date().toISOString() }).eq('id', idIuran);
       setListPending(prev => prev.filter(item => item.id !== idIuran));
       router.refresh();
     } catch (err: any) {
-      alert('Gagal menyetujui pembayaran: ' + err.message);
-    } finally {
-      setLoadingId(null);
-    }
+      alert(err.message);
+    } finally { setLoadingId(null); }
   };
 
-  // 3. Logika Fungsi REJECT (Tolak Pembayaran jika Bukti Palsu/Salah)
   const handleReject = async (idIuran: string) => {
-    if (!confirm('Apakah Anda yakin ingin menolak bukti pembayaran ini? Warga harus mengunggah ulang.')) return;
-    
+    if (!confirm('Tolak bukti pembayaran ini?')) return;
     setLoadingId(idIuran);
     try {
-      const { error } = await supabase
-        .from('iuran')
-        .update({ 
-          status: 'Belum Lunas',
-          tanggal_bayar: null // Reset tanggal kirim agar warga bisa upload ulang
-        })
-        .eq('id', idIuran);
-
-      if (error) throw error;
-
+      await supabase.from('iuran').update({ status: 'Belum Lunas', tanggal_bayar: null }).eq('id', idIuran);
       setListPending(prev => prev.filter(item => item.id !== idIuran));
       router.refresh();
     } catch (err: any) {
-      alert('Gagal menolak pembayaran: ' + err.message);
-    } finally {
-      setLoadingId(null);
-    }
+      alert(err.message);
+    } finally { setLoadingId(null); }
   };
 
-  // Filter pencarian berdasarkan nama warga atau blok
+  // FUNGSI UTAMA: Memicu pembukaan aplikasi WhatsApp klien secara gratis dengan teks template otomatis
+  const pemicuKirimWhatsAppKlien = (noWa: string, namaWarga: string, tagihan: string, bulan: string, rupiah: number) => {
+    const teksPesan = encodeURIComponent(
+      `*PENGINGAT TAGIHAN RT MANDIRI*\n\nHalo Bpk/Ibu *${namaWarga}*,\nKami menginformasikan bahwa iuran *${tagihan}* periode *${bulan || '-'}* sebesar *Rp ${Number(rupiah).toLocaleString('id-ID')}* belum tercatat lunas di kas RT.\n\nMohon selesaikan pembayaran via aplikasi atau koordinasikan dengan Bendahara RT.\n\n Terima kasih.`
+    );
+    // Membuka tab baru yang otomatis memicu aplikasi WhatsApp Web atau WhatsApp Mobile di perangkat pengurus
+    window.open(`https://wa.me{noWa}?text=${teksPesan}`, '_blank');
+  };
+
   const filteredData = listPending.filter(item => {
-    const namaWarga = item.profiles?.nama?.toLowerCase() || '';
-    const blokRumah = item.profiles?.blok_rumah?.toLowerCase() || '';
-    return namaWarga.includes(filterText.toLowerCase()) || blokRumah.includes(filterText.toLowerCase());
+    const name = item.profiles?.nama?.toLowerCase() || '';
+    const block = item.profiles?.blok_rumah?.toLowerCase() || '';
+    return name.includes(filterText.toLowerCase()) || block.includes(filterText.toLowerCase());
   });
 
   return (
     <div className="min-h-screen bg-[#0F111A] text-white p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-slate-800 pb-4">
           <div>
-            <h1 className="text-lg font-bold text-slate-200 flex items-center gap-2">
+            <h1 className="text-lg font-bold flex items-center gap-2">
               <span className="bg-amber-600 text-[10px] px-2 py-0.5 rounded text-white font-mono">ADMIN PANEL</span>
               Persetujuan Iuran Warga
             </h1>
             <p className="text-xs text-slate-400 mt-1">Daftar konfirmasi pembayaran manual yang diajukan oleh warga</p>
           </div>
-          
-          <input 
-            type="text" 
-            placeholder="Cari nama warga atau blok..." 
-            className="text-xs p-2 bg-[#161925] border border-slate-800 rounded-lg w-full md:w-64 focus:outline-none focus:border-indigo-500 text-slate-300"
-            value={filterText}
-            onChange={e => setFilterText(e.target.value)}
-          />
+          <input type="text" placeholder="Cari nama warga..." className="text-xs p-2 bg-[#161925] border border-slate-800 rounded-lg w-full md:w-64 focus:outline-none" value={filterText} onChange={e => setFilterText(e.target.value)} />
         </div>
 
-        {/* Tabel Data Pending */}
         <div className="bg-[#161925] border border-slate-800 rounded-xl p-5 overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-500 uppercase tracking-wider font-semibold text-[10px]">
+              <tr className="border-b border-slate-800 text-slate-500 font-semibold text-[10px]">
                 <th className="pb-3">Warga / Blok</th>
                 <th className="pb-3">Jenis Iuran</th>
                 <th className="pb-3">Bulan</th>
                 <th className="pb-3">Nominal</th>
-                <th className="pb-3">Tanggal Kirim</th>
-                <th className="pb-3 text-center">Aksi Verifikasi</th>
+                <th className="pb-3 text-center">Aksi Verifikasi & Komunikasi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/40">
-              {filteredData.length > 0 ? (
-                filteredData.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-800/10">
-                    <td className="py-3.5">
-                      <p className="font-semibold text-slate-200">{item.profiles?.nama || 'Tanpa Nama'}</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Blok {item.profiles?.blok_rumah || '-'}</p>
-                    </td>
-                    <td className="py-3.5 font-medium text-slate-300">{item.nama_tagihan}</td>
-                    <td className="py-3.5 text-slate-400">{item.bulan || '-'}</td>
-                    <td className="py-3.5 font-bold text-indigo-400">Rp {Number(item.nominal).toLocaleString('id-ID')}</td>
-                    <td className="py-3.5 text-slate-400">
-                      {item.tanggal_bayar ? new Date(item.tanggal_bayar).toLocaleDateString('id-ID', {hour: '2-digit', minute:'2-digit'}) : '-'}
-                    </td>
-                    <td className="py-3.5">
-                      <div className="flex items-center justify-center gap-2">
-                        {/* Tombol Lihat Bukti */}
-                        <a 
-                          href={`https://supabase.co{item.id}_`} // Sesuaikan domain Supabase Anda
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded text-[11px] transition"
-                        >
-                          Lihat Bukti
-                        </a>
-                        
-                        {/* Tombol Approve */}
-                        <button
-                          onClick={() => handleApprove(item.id)}
-                          disabled={loadingId !== null}
-                          className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white px-3 py-1.5 rounded font-medium text-[11px] transition"
-                        >
-                          {loadingId === item.id ? '...' : 'Setuju'}
-                        </button>
-
-                        {/* Tombol Reject */}
-                        <button
-                          onClick={() => handleReject(item.id)}
-                          disabled={loadingId !== null}
-                          className="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-2.5 py-1.5 rounded text-[11px] transition"
-                        >
-                          Tolak
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-500">Tidak ada pengajuan pembayaran manual yang perlu dikonfirmasi saat ini.</td>
+              {filteredData.map((item) => (
+                <tr key={item.id} className="hover:bg-slate-800/10">
+                  <td className="py-3.5">
+                    <p className="font-semibold text-slate-200">{item.profiles?.nama}</p>
+                    <p className="text-[10px] text-slate-500">Blok {item.profiles?.blok_rumah}</p>
+                  </td>
+                  <td className="py-3.5 text-slate-300">{item.nama_tagihan}</td>
+                  <td className="py-3.5 text-slate-400">{item.bulan || '-'}</td>
+                  <td className="py-3.5 font-bold text-indigo-400">Rp {Number(item.nominal).toLocaleString('id-ID')}</td>
+                  <td className="py-3.5">
+                    <div className="flex items-center justify-center gap-2">
+                      {/* Tombol Pemicu WhatsApp Klien Otomatis */}
+                      <button
+                        onClick={() => pemicuKirimWhatsAppKlien(item.profiles?.no_whatsapp, item.profiles?.nama, item.nama_tagihan, item.bulan, item.nominal)}
+                        className="bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-600 hover:text-white px-2.5 py-1.5 rounded text-[11px] transition"
+                      >
+                        💬 Hubungi WA
+                      </button>
+                      <button onClick={() => handleApprove(item.id)} disabled={loadingId !== null} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded font-medium text-[11px] transition">Setuju</button>
+                      <button onClick={() => handleReject(item.id)} disabled={loadingId !== null} className="bg-red-600/20 text-red-400 px-2.5 py-1.5 rounded text-[11px] transition">Tolak</button>
+                    </div>
+                  </td>
                 </tr>
-              )}
+              ))}
             </tbody>
           </table>
         </div>
