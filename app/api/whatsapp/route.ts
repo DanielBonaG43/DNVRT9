@@ -10,7 +10,9 @@ export async function GET() {
   const { Client, LocalAuth } = dynamicRequire('whatsapp-web.js');
 
   // Menggunakan executable path dinamis dari environment variable Railway
-  const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
+  // Ganti baris penentuan chromePath Anda menjadi kode super-aman berikut:
+const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
+
 
   if (!client) {
     statusConnected = 'Initializing...';
