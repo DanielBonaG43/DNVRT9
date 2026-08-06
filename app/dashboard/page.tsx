@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import LogoutButton from '@/components/LogoutButton'; // Impor komponen tombol baru
+import LogoutButton from '../components/LogoutButton'; // Impor komponen tombol baru
 
 export default async function DashboardPage() {
   const supabase = createServerComponentClient({ cookies });
