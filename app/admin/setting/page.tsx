@@ -31,14 +31,18 @@ export default function AdminSettingPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSaveConfig = async (e: React.FormEvent) => {
+    const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await supabase.from('sistem_config').withConverter(null).upsert([
+      // PERBAIKAN: Hapus .withConverter(null) agar sesuai standar Postgrest Supabase
+      const { error } = await supabase.from('sistem_config').upsert([
         { key: 'tarif_iuran_wajib', value: tarif },
         { key: 'qris_payload', value: qris }
       ]);
+
+      if (error) throw error;
+
       alert('Konfigurasi parameter iuran berhasil disimpan!');
     } catch (err: any) {
       alert('Gagal menyimpan: ' + err.message);
@@ -46,6 +50,7 @@ export default function AdminSettingPage() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-[#0F111A] text-white p-6 max-w-5xl mx-auto space-y-6">
