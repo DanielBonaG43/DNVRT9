@@ -35,16 +35,15 @@ export default function AdminLayout({
           </Link>
           
           {/* Tautan Navigasi Cepat Antar Modul */}
-          // ... potongan kode navbar di app/admin/layout.tsx ...
-<div className="hidden md:flex items-center gap-4 text-xs text-slate-400">
-  <Link href="/admin/warga" className="hover:text-white transition">Warga</Link>
-  <Link href="/admin/konfirmasi-iuran" className="hover:text-white transition">Verifikasi Iuran</Link>
-  <Link href="/admin/iuran" className="hover:text-white transition">Tagihan Massal</Link>
-  <Link href="/admin/surat" className="hover:text-white transition">Persuratan</Link>
-  <Link href="/admin/pengumuman" className="hover:text-white transition">Pengumuman</Link>
-  <Link href="/admin/logistik-kas" className="hover:text-white transition">Kas & Logistik</Link>
-  <Link href="/admin/setting" className="text-amber-500 font-medium hover:text-amber-400 transition">⚙ Konfig / Setting</Link> {/* TAMBAHKAN BARIS INI */}
-</div>
+         <div className="hidden md:flex items-center gap-4 text-xs text-slate-400">
+          <Link href="/admin/warga" className="hover:text-white transition">Warga</Link>
+          <Link href="/admin/konfirmasi-iuran" className="hover:text-white transition">Verifikasi Iuran</Link>
+          <Link href="/admin/iuran" className="hover:text-white transition">Tagihan Massal</Link>
+          <Link href="/admin/surat" className="hover:text-white transition">Persuratan</Link>
+          <Link href="/admin/pengumuman" className="hover:text-white transition">Pengumuman</Link>
+          <Link href="/admin/logistik-kas" className="hover:text-white transition">Kas & Logistik</Link>
+          <Link href="/admin/setting" className="text-amber-500 font-medium hover:text-amber-400 transition">⚙ Konfig / Setting</Link> {/* TAMBAHKAN BARIS INI */}
+        </div>
 
 
         </div>
