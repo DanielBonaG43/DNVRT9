@@ -1,12 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // KUNCI UTAMA: Beritahu Webpack untuk tidak membundel modul server biner ini
   webpack: (config, { isServer }) => {
     if (isServer) {
-      config.externals.push({
-        'whatsapp-web.js': 'commonjs whatsapp-web.js',
-      });
+      // Menggunakan format array external string untuk memaksa Webpack mengabaikan modul Node murni
+      config.externals = [...(config.externals || []), 'whatsapp-web.js', 'qrcode'];
     }
     return config;
   },
