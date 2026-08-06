@@ -21,11 +21,25 @@ export async function GET(request: Request, { params }: { params: { id: string }
     return NextResponse.json({ error: 'Data pembayaran tidak valid atau belum lunas.' }, { status: 400 });
   }
 
-  // @ts-ignore - Handle type profiles jika gabungan relasi dianggap union
-  const warga = iuranData.profiles;
+  // 2. Amankan pembacaan data profile (Mengatasi error array dari compiler TypeScript)
+  let namaWarga = '-';
+  let blokRumah = '-';
 
-  // 2. Generate Dokumen PDF menggunakan jsPDF
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [210, 105] }); // Ukuran Memo/Kwitansi
+  if (iuranData.profiles) {
+    if (Array.isArray(iuranData.profiles)) {
+      // Jika terdeteksi sebagai array, ambil elemen pertama
+      namaWarga = iuranData.profiles[0]?.nama || '-';
+      blokRumah = iuranData.profiles[0]?.blok_rumah || '-';
+    } else {
+      // Jika berupa objek tunggal
+      const p = iuranData.profiles as any;
+      namaWarga = p.nama || '-';
+      blokRumah = p.blok_rumah || '-';
+    }
+  }
+
+  // 3. Generate Dokumen PDF menggunakan jsPDF
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [210, 105] }); // Format Memo Kwitansi
 
   // Desain & Border Kotak Luar
   doc.setDrawColor(30, 41, 59);
@@ -40,10 +54,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
   doc.text('De Naila Village, RT 09 / RW 04, Kab. Gresik', 15, 20);
   doc.line(15, 23, 195, 23);
 
-  // Konten Detail Pembayaran
+  // Konten Detail Pembayaran (Menggunakan variabel aman hasil parsing di atas)
   doc.setFontSize(10);
   doc.text(`Nomor Transaksi  : ${iuranData.id.substring(0, 8).toUpperCase()}`, 15, 32);
-  doc.text(`Telah Terima Dari : ${warga?.nama || '-'} (Blok ${warga?.blok_rumah || '-'})`, 15, 40);
+  doc.text(`Telah Terima Dari : ${namaWarga} (Blok ${blokRumah})`, 15, 40);
   doc.text(`Untuk Pembayaran : ${iuranData.nama_tagihan} (${iuranData.bulan || '-'})`, 15, 48);
   
   // Nominal Besar (Terbilang Box)
@@ -51,6 +65,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   doc.rect(15, 55, 100, 12, 'F');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
+  doc.setTextColor(15, 23, 42); // Ubah warna font teks nominal menjadi gelap di atas box putih
   doc.text(`RP. ${Number(iuranData.nominal).toLocaleString('id-ID')}`, 20, 62);
 
   // Status Cap Lunas
@@ -72,13 +87,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
   doc.setFontSize(8);
   doc.text('Sistem Aplikasi RT Mandiri', 160, 82);
 
-  // Convert dokumen ke bentuk Buffer Array agar langsung terdownload otomatis di browser warga
+  // Mengubah dokumen ke bentuk Buffer Array agar terunduh otomatis di browser warga
   const pdfOutput = doc.output('arraybuffer');
 
   return new NextResponse(pdfOutput, {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename=Kwitansi_${iuranData.id.substring(0,6)}.pdf`,
+      'Content-Disposition': `attachment; filename=Kwitansi_${iuranData.id.substring(0, 6)}.pdf`,
     },
   });
 }
