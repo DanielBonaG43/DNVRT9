@@ -8,6 +8,13 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "engines": {
+    "node": ">=18"
+  },
+  "nixpacks": {
+    "dependsOn": ["pkgs.google-chrome"]
+  },
+  "dependencies": {
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "0.10.0",
     "@supabase/ssr": "0.5.2",
