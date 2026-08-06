@@ -1,11 +1,31 @@
 export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 
+'use client';
+import Link from 'next/link';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = createClientComponentClient();
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Fungsi interaksi keluar dari sistem autentikasi Supabase
+  const handleLogout = async () => {
+    if (!confirm('Apakah Anda yakin ingin keluar dari sistem aplikasi?')) return;
+    
+    setIsLoggingOut(true);
+    await supabase.auth.signOut();
+    router.refresh();
+    router.push('/login'); // Kembalikan paksa ke halaman login utama
+  };
+
   return (
     <div className="min-h-screen bg-[#0F111A] text-slate-100 font-sans flex flex-col">
       {/* Navbar Atas Universal Khusus Admin */}
@@ -27,9 +47,21 @@ export default function AdminLayout({
           </div>
         </div>
 
-        <Link href="/dashboard" className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded transition">
-          Ke Dashboard Warga
-        </Link>
+        {/* Kelompok Tombol Sisi Kanan */}
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard" className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded transition">
+            Dasbor Warga
+          </Link>
+          
+          {/* Tombol Log Out Premium */}
+          <button 
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="text-xs bg-red-600/10 hover:bg-red-600 border border-red-500/20 hover:border-transparent text-red-400 hover:text-white px-3 py-1.5 rounded transition font-medium disabled:opacity-50"
+          >
+            {isLoggingOut ? 'Keluar...' : '🚪 Log Out'}
+          </button>
+        </div>
       </nav>
 
       {/* Konten Utama Halaman Admin */}
