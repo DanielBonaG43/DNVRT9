@@ -1,19 +1,22 @@
+export const dynamic = 'force-dynamic';
+
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
+import LogoutButton from '@/components/LogoutButton'; // Impor komponen tombol baru
 
 export default async function DashboardPage() {
   const supabase = createServerComponentClient({ cookies });
   
-  // 1. Ambil ID user aktif secara aman menggunakan { user } bukan { session }
+  // Ambil ID user aktif
   const { data: { user } } = await supabase.auth.getUser();
   
-  // Ambil data profil yang terhubung menggunakan user.id
+  // Ambil data profil warga
   const { data: profile } = user 
     ? await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle() 
     : { data: null };
 
-  // 2. Agregasi finansial dengan pencegahan nilai null
+  // Agregasi finansial kas RT
   const { data: totalIuran } = await supabase.from('iuran').select('nominal').eq('status', 'Lunas');
   const { data: totalKeluar } = await supabase.from('pengeluaran_kas').select('nominal');
   
@@ -21,7 +24,7 @@ export default async function DashboardPage() {
   const pengeluaran = totalKeluar?.reduce((sum, item) => sum + Number(item.nominal || 0), 0) || 0;
   const saldoBersih = pemasukan - pengeluaran;
 
-  // 3. Mengambil data relasional untuk komponen list dashboard
+  // Ambil data list dashboard
   const { data: tagihan } = user 
     ? await supabase.from('iuran').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5)
     : { data: [] };
@@ -40,26 +43,23 @@ export default async function DashboardPage() {
           </h1>
           <p className="text-xs text-slate-400">Blok {profile?.blok_rumah || '-'} • De Naila Village</p>
         </div>
-        <div className="flex items-center gap-4">
+        
+        {/* Tombol Aksi Kanan */}
+        <div className="flex items-center gap-3">
           {profile?.role && profile.role !== 'warga' && (
-            <Link href="/admin/konfirmasi-iuran" className="text-xs bg-amber-600 px-3 py-1.5 rounded hover:bg-amber-700 transition">Panel Admin</Link>
+            <Link href="/admin" className="text-xs bg-amber-600 px-3 py-1.5 rounded hover:bg-amber-700 transition">Panel Admin</Link>
           )}
-          <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">● Sistem Online</span>
+          {/* Menyisipkan Tombol Log Out Pengganti Status Polosan */}
+          <LogoutButton />
         </div>
       </header>
 
       {/* Grid Konten Utama */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Kolom Kiri & Tengah: Finansial & Tagihan */}
         <div className="lg:col-span-2 space-y-6">
-          
-          {/* Ringkasan Kas Transparansi */}
+          {/* Box Kas Transparansi */}
           <div className="bg-[#161925] border border-slate-800 rounded-xl p-5">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kas Transparansi RT</h2>
-              <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded">Transparansi 100%</span>
-            </div>
+            <h2 className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">Kas Transparansi RT</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-[#0F111A] p-4 rounded-lg border border-slate-800">
                 <span className="text-[11px] text-slate-400">Total Saldo Kas</span>
@@ -76,7 +76,7 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Riwayat Tagihan / Kronologis Iuran */}
+          {/* Box Tabel Tagihan */}
           <div className="bg-[#161925] border border-slate-800 rounded-xl p-5">
             <h2 className="text-xs font-semibold text-slate-400 mb-4 uppercase tracking-wider">Riwayat Tagihan Iuran Anda</h2>
             <div className="overflow-x-auto">
@@ -120,10 +120,8 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Kolom Kanan: Pengumuman & Inventaris */}
+        {/* Sisi Kanan Widget */}
         <div className="space-y-6">
-          
-          {/* Papan Pengumuman RT */}
           <div className="bg-[#161925] border border-slate-800 rounded-xl p-5">
             <h2 className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">Pengumuman RT</h2>
             <div className="space-y-3">
@@ -140,7 +138,6 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Sistem Inventarisasi */}
           <div className="bg-[#161925] border border-slate-800 rounded-xl p-5">
             <h2 className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">Inventaris RT</h2>
             <div className="grid grid-cols-2 gap-2 text-xs">
@@ -155,7 +152,6 @@ export default async function DashboardPage() {
               ))}
             </div>
           </div>
-
         </div>
       </div>
     </div>
