@@ -45,7 +45,7 @@ export default function AdminLayout({
   <Link href="/admin/logistik-kas" className="hover:text-white transition">Kas & Logistik</Link>
   <Link href="/admin/setting" className="text-amber-500 font-medium hover:text-amber-400 transition">⚙ Konfig / Setting</Link> {/* TAMBAHKAN BARIS INI */}
 </div>
-// ... sisa kode layout ke bawah tetap sama ...
+
 
         </div>
 
